@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>WHERE IS MY BUS? — Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Bengali:wght@400;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--navy:#0B1D3A;--navy2:#122B52;--sky:#0EA5E9;--cyan:#06B6D4;--bg:#F1F5F9;--card:#fff;--text:#0F172A;--muted:#64748B;--border:#E2E8F0;--green:#22C55E;--red:#EF4444;--amber:#F59E0B;--shadow:0 10px 30px rgba(2,6,23,.08)}
+[data-theme=dark]{--bg:#070F22;--card:#0F1E3D;--text:#F1F5F9;--muted:#94A3B8;--border:#1E3A5F;--shadow:0 10px 30px rgba(0,0,0,.4)}
+*{box-sizing:border-box;margin:0;padding:0}html,body{max-width:100%;overflow-x:hidden}body{font-family:Inter,'Noto Sans Bengali',sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font-family:inherit}button{cursor:pointer;border:none}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:#94A3B8;border-radius:99px}
+/* LOGIN */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#0B1D3A 0%,#0EA5E9 55%,#06B6D4 100%);position:relative;overflow:hidden}
+#loginScreen:before{content:'';position:absolute;width:600px;height:600px;background:rgba(255,255,255,.08);border-radius:50%;top:-200px;right:-150px}
+.login-card{background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border-radius:28px;padding:36px 28px;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,.3);position:relative;z-index:1;text-align:center}
+.logo-badge{width:72px;height:72px;margin:0 auto 14px;background:linear-gradient(135deg,#0B1D3A,#0EA5E9);border-radius:22px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:30px;box-shadow:0 12px 30px rgba(14,165,233,.4)}
+.login-card h1{font-family:Poppins;font-size:26px;letter-spacing:-.5px}.login-card h1 span{color:var(--sky)}
+.login-card p{color:var(--muted);font-size:13px;margin:6px 0 22px}
+.field{margin-bottom:14px;text-align:left}.field label{display:block;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.input-wrap{position:relative}.input-wrap i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
+.input-wrap input,.input-wrap select,.input-wrap textarea{width:100%;padding:13px 42px 13px 40px;border:1.5px solid var(--border);border-radius:14px;background:var(--card);color:var(--text);font-size:14px;outline:none;transition:.2s}
+.input-wrap input:focus,.input-wrap select:focus,.input-wrap textarea:focus{border-color:var(--sky);box-shadow:0 0 0 4px rgba(14,165,233,.12)}
+.eye-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;color:var(--muted);padding:8px}
+.btn-primary{width:100%;padding:14px;border-radius:14px;background:linear-gradient(135deg,#0B1D3A,#0EA5E9);color:#fff;font-weight:800;font-size:15px;letter-spacing:.3px;box-shadow:0 10px 25px rgba(14,165,233,.35);transition:.2s}
+.btn-primary:hover{transform:translateY(-1px)}.btn-primary:disabled{opacity:.6;transform:none}
+.err-msg{display:none;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;padding:10px;border-radius:12px;font-size:13px;margin-bottom:12px}
+.err-msg.show{display:block}
+.spinner{width:18px;height:18px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+/* LAYOUT */
+#app{display:none;min-height:100vh}
+#app.show{display:flex}
+.sidebar{width:260px;background:linear-gradient(180deg,#0B1D3A,#0F2A52);color:#fff;position:fixed;top:0;left:0;bottom:0;z-index:50;display:flex;flex-direction:column;transition:.3s}
+.sidebar-brand{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sidebar-brand h2{font-family:Poppins;font-size:18px;line-height:1.2}.sidebar-brand h2 span{color:#38BDF8}
+.sidebar-brand small{color:#94A3B8;font-size:11px}
+.nav{flex:1;overflow-y:auto;padding:12px 10px}
+.nav-btn{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:12px;background:none;color:#CBD5E1;font-size:14px;font-weight:600;text-align:left;margin-bottom:4px;transition:.2s}
+.nav-btn i{width:20px;text-align:center}
+.nav-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-btn.active{background:linear-gradient(135deg,#0EA5E9,#06B6D4);color:#fff;box-shadow:0 8px 20px rgba(14,165,233,.35)}
+.sidebar-foot{padding:14px;border-top:1px solid rgba(255,255,255,.1)}
+.main{flex:1;margin-left:260px;padding:22px;max-width:calc(100vw - 260px)}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.topbar h1{font-family:Poppins;font-size:24px}
+.topbar p{color:var(--muted);font-size:13px}
+.top-actions{display:flex;gap:8px;align-items:center}
+.icon-btn{width:42px;height:42px;border-radius:12px;background:var(--card);border:1px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:center;font-size:16px}
+.page{display:none;animation:fadeUp .35s ease}.page.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:var(--shadow)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+.stat-card .ic{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;margin-bottom:10px}
+.stat-card b{font-size:28px;font-family:Poppins}.stat-card span{display:block;color:var(--muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bus-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.bus-card{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+.bus-card img{width:100%;height:150px;object-fit:cover;background:linear-gradient(135deg,#E0F2FE,#BAE6FD)}
+.bus-card-body{padding:16px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.badge-verified{background:#DCFCE7;color:#15803D}.badge-unverified{background:#FEF3C7;color:#B45309}.badge-review{background:#FEE2E2;color:#B91C1C}
+[data-theme=dark] .badge-verified{background:#14532D;color:#86EFAC}[data-theme=dark] .badge-unverified{background:#451A03;color:#FCD34D}
+.btn{padding:10px 16px;border-radius:12px;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:7px;transition:.2s}
+.btn-sm{padding:7px 11px;font-size:12px;border-radius:10px}
+.btn-blue{background:linear-gradient(135deg,#0EA5E9,#06B6D4);color:#fff}
+.btn-dark{background:var(--navy);color:#fff}
+.btn-ghost{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}
+.btn-green{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
+[data-theme=dark] .btn-danger{background:#450A0A;color:#FCA5A5}[data-theme=dark] .btn-green{background:#052E16;color:#86EFAC}
+.btn:hover{transform:translateY(-1px)}
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .full{grid-column:1/-1}
+.f-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:13px;background:var(--card);color:var(--text);font-size:14px;outline:none}
+.f-input:focus{border-color:var(--sky);box-shadow:0 0 0 4px rgba(14,165,233,.12)}
+.f-label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.f-label .req{color:var(--red)}
+.stepper{display:flex;gap:8px;margin-bottom:18px}
+.step-pill{flex:1;padding:12px;border-radius:13px;background:var(--card);border:1px solid var(--border);text-align:center;font-size:13px;font-weight:700;color:var(--muted)}
+.step-pill.active{background:linear-gradient(135deg,#0B1D3A,#0EA5E9);color:#fff;border-color:transparent}
+/* AUTOCOMPLETE */
+.ac-wrap{position:relative}
+.ac-drop{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.18);z-index:200;max-height:300px;overflow-y:auto;display:none}
+.ac-drop.show{display:block}
+.ac-item{padding:12px 14px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;border-bottom:1px solid var(--border)}
+.ac-item:last-child{border:none}.ac-item:hover,.ac-item.sel{background:var(--bg)}
+.ac-item i{color:var(--sky);margin-top:2px}.ac-item b{font-size:13px;display:block}.ac-item span{font-size:12px;color:var(--muted)}
+.ac-loading,.ac-empty{padding:14px;text-align:center;font-size:13px;color:var(--muted)}
+/* TIMELINE */
+.timeline{position:relative;padding-left:8px}
+.tl-item{display:flex;gap:14px;position:relative;padding-bottom:18px}
+.tl-item:before{content:'';position:absolute;left:19px;top:44px;bottom:0;width:2px;background:linear-gradient(180deg,var(--sky),var(--cyan));opacity:.35}
+.tl-item:last-child:before{display:none}
+.tl-badge{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;z-index:1;box-shadow:0 6px 16px rgba(0,0,0,.15)}
+.tl-badge.start{background:linear-gradient(135deg,#22C55E,#16A34A)}
+.tl-badge.mid{background:linear-gradient(135deg,#0EA5E9,#06B6D4)}
+.tl-badge.end{background:linear-gradient(135deg,#EF4444,#DC2626)}
+.tl-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+.tl-card.dragging{opacity:.5}
+.tl-dist{display:flex;align-items:center;gap:8px;padding:6px 0 14px 54px;font-size:12px;font-weight:700;color:var(--sky)}
+.tl-dist .line{flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--sky) 0 6px,transparent 6px 12px);opacity:.4}
+.total-dist-bar{background:linear-gradient(135deg,#0B1D3A,#0EA5E9);color:#fff;border-radius:16px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.total-dist-bar b{font-family:Poppins;font-size:22px}
+#builderMap{height:420px;border-radius:18px;border:1px solid var(--border);z-index:1}
+#builderMap:fullscreen{height:100%}
+.map-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.map-tools .btn{flex:1;justify-content:center;min-width:110px}
+.add-stop-btn{width:100%;padding:16px;border-radius:16px;border:2px dashed var(--sky);background:rgba(14,165,233,.06);color:var(--sky);font-weight:800;font-size:14px;letter-spacing:.5px;transition:.2s}
+.add-stop-btn:hover{background:rgba(14,165,233,.12)}
+.drag-handle{cursor:grab;color:var(--muted);padding:6px}
+/* TOAST / MODAL */
+#toastBox{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--navy);color:#fff;padding:14px 18px;border-radius:14px;box-shadow:0 15px 40px rgba(0,0,0,.3);font-size:14px;font-weight:600;display:flex;gap:10px;align-items:center;animation:fadeUp .3s;max-width:340px}
+.toast.success{background:#15803D}.toast.error{background:#DC2626}
+.modal-overlay{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card);border-radius:22px;padding:26px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;animation:fadeUp .3s}
+.skeleton{background:linear-gradient(90deg,var(--border) 25%,var(--bg) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:12px;height:120px}
+@keyframes shimmer{to{background-position:-200% 0}}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty i{font-size:48px;color:var(--sky);opacity:.5;margin-bottom:14px}
+.search-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.search-bar input{flex:1;min-width:200px;padding:12px 16px;border-radius:13px;border:1.5px solid var(--border);background:var(--card);color:var(--text);outline:none}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;text-align:left;border-bottom:1px solid var(--border)}th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.district-chip{display:inline-block;padding:8px 14px;border-radius:99px;background:var(--bg);border:1px solid var(--border);font-size:13px;font-weight:600;margin:4px;cursor:pointer}
+.district-chip:hover,.district-chip.active{background:var(--navy);color:#fff}
+.hamburger{display:none}
+@media(max-width:900px){
+.sidebar{transform:translateX(-100%)}.sidebar.open{transform:none;box-shadow:0 0 60px rgba(0,0,0,.4)}
+.main{margin-left:0;max-width:100vw;padding:16px}.hamburger{display:flex}
+.grid2,.form-grid{grid-template-columns:1fr}
+#builderMap{height:320px}
+.topbar h1{font-size:20px}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="logo-badge"><i class="fa-solid fa-bus"></i></div>
+    <h1>WHERE IS <span>MY BUS?</span></h1>
+    <p>Admin Management Panel • West Bengal</p>
+    <div class="err-msg" id="loginErr"><i class="fa-solid fa-circle-exclamation"></i> Invalid password. Please try again.</div>
+    <form id="loginForm">
+      <div class="field"><label>Admin Password</label>
+        <div class="input-wrap"><i class="fa-solid fa-lock"></i>
+          <input type="password" id="adminPass" placeholder="Enter admin password" autocomplete="current-password">
+          <button type="button" class="eye-btn" id="eyeBtn"><i class="fa-regular fa-eye"></i></button>
+        </div>
+      </div>
+      <button class="btn-primary" id="loginBtn" type="submit">Login to Dashboard <i class="fa-solid fa-arrow-right"></i></button>
+    </form>
+    <p style="margin-top:16px;font-size:11px;color:#94A3B8"><i class="fa-solid fa-shield-halved"></i> Development build — secure server-side auth required before production launch.</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><h2>WHERE IS <span>MY BUS?</span></h2><small>Admin Panel • West Bengal</small></div>
+    <nav class="nav" id="sideNav">
+      <button class="nav-btn active" data-page="overview"><i class="fa-solid fa-gauge-high"></i> Overview</button>
+      <button class="nav-btn" data-page="addbus"><i class="fa-solid fa-circle-plus"></i> Add New Bus</button>
+      <button class="nav-btn" data-page="manage"><i class="fa-solid fa-bus"></i> Manage Buses</button>
+      <button class="nav-btn" data-page="routes"><i class="fa-solid fa-route"></i> Manage Routes</button>
+      <button class="nav-btn" data-page="stops"><i class="fa-solid fa-location-dot"></i> Manage Stops</button>
+      <button class="nav-btn" data-page="schedules"><i class="fa-regular fa-clock"></i> Manage Schedules</button>
+      <button class="nav-btn" data-page="districts"><i class="fa-solid fa-map"></i> District Management</button>
+      <button class="nav-btn" data-page="reports"><i class="fa-solid fa-flag"></i> Reports <span id="reportCount" style="margin-left:auto;background:#EF4444;color:#fff;border-radius:99px;padding:2px 8px;font-size:11px;display:none">0</span></button>
+      <button class="nav-btn" data-page="importexport"><i class="fa-solid fa-file-import"></i> Data Import / Export</button>
+      <button class="nav-btn" data-page="settings"><i class="fa-solid fa-gear"></i> Settings</button>
+    </nav>
+    <div class="sidebar-foot">
+      <button class="nav-btn" id="themeToggle"><i class="fa-solid fa-moon"></i> Dark Mode</button>
+      <button class="nav-btn" id="langToggle"><i class="fa-solid fa-language"></i> বাংলা / EN</button>
+      <button class="nav-btn" id="logoutBtn" style="color:#FCA5A5"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="icon-btn hamburger" id="hamburger"><i class="fa-solid fa-bars"></i></button>
+        <div><h1 id="pageTitle">Overview</h1><p id="pageSub">Real-time statistics from Firebase</p></div>
+      </div>
+      <div class="top-actions">
+        <span id="netStatus" class="badge badge-verified"><i class="fa-solid fa-wifi"></i> Online</span>
+        <button class="btn btn-blue btn-sm" onclick="showPage('addbus')"><i class="fa-solid fa-plus"></i> Add Bus</button>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <section class="page active" id="page-overview">
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:14px"><i class="fa-solid fa-clock-rotate-left" style="color:var(--sky)"></i> Recently Added Buses</h3><div id="recentList"></div></div>
+        <div class="card"><h3 style="margin-bottom:14px"><i class="fa-solid fa-map" style="color:var(--sky)"></i> District Coverage</h3><div id="districtCoverage"></div></div>
+      </div>
+    </section>
+
+    <!-- ADD BUS -->
+    <section class="page" id="page-addbus">
+      <div class="stepper"><div class="step-pill active" id="pill1">STEP 1 — Basic Information</div><div class="step-pill" id="pill2">STEP 2 — Stops & Route Map</div></div>
+
+      <div id="step1">
+        <div class="card">
+          <div class="form-grid">
+            <div class="full"><label class="f-label">Bus Name <span class="req">*</span></label><input class="f-input" id="f_busName" placeholder="e.g. Kolkata — Digha Express"></div>
+            <div><label class="f-label">Bus Number</label><input class="f-input" id="f_busNumber" placeholder="WB-19-1234"></div>
+            <div><label class="f-label">Operator Name</label><input class="f-input" id="f_operator" placeholder="Operator / Company"></div>
+            <div><label class="f-label">Bus Type</label><select class="f-input" id="f_busType"><option value="">Select type</option><option>AC Deluxe</option><option>Non-AC</option><option>Sleeper</option><option>Volvo</option><option>Mini Bus</option><option>Government (WBTC)</option><option>Private</option></select></div>
+            <div><label class="f-label">Bus Category</label><select class="f-input" id="f_busCategory"><option value="">Select category</option><option>Express</option><option>Local</option><option>Intercity</option><option>Tourist</option></select></div>
+            <div><label class="f-label">Registration Number</label><input class="f-input" id="f_regNumber" placeholder="WB-XX-0000"></div>
+            <div><label class="f-label">Fare (₹)</label><input class="f-input" id="f_fare" type="number" min="0" placeholder="e.g. 450"></div>
+            <div><label class="f-label">First Departure Time <span class="req">*</span></label><input class="f-input" id="f_departureTime" type="time" value="06:15"></div>
+            <div><label class="f-label">Operating Days</label><input class="f-input" id="f_operatingDays" placeholder="Daily / Mon–Sat"></div>
+            <div><label class="f-label">Estimated Journey Duration</label><input class="f-input" id="f_duration" placeholder="e.g. 4h 30m"></div>
+            <div><label class="f-label">Bus Image URL (optional)</label><input class="f-input" id="f_busImage" placeholder="https://..."></div>
+            <div><label class="f-label">Contact Information</label><input class="f-input" id="f_contact" placeholder="Phone / Helpline"></div>
+            <div class="full"><label class="f-label">Description</label><textarea class="f-input" id="f_description" rows="2" placeholder="Short description of the service..."></textarea></div>
+            <div><label class="f-label">Starting Location <span class="req">*</span></label><div class="ac-wrap"><input class="f-input" id="f_startLoc" placeholder="Type place name..." autocomplete="off"><div class="ac-drop" id="ac_start"></div></div><small style="color:var(--muted)" id="startCoordHint">Select from suggestions or pick on map in Step 2</small></div>
+            <div><label class="f-label">Destination <span class="req">*</span></label><div class="ac-wrap"><input class="f-input" id="f_destLoc" placeholder="Type place name..." autocomplete="off"><div class="ac-drop" id="ac_dest"></div></div><small style="color:var(--muted)" id="destCoordHint">Select from suggestions or pick on map in Step 2</small></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+            <button class="btn btn-blue" id="toStep2" style="flex:1;justify-content:center;padding:14px">Continue to Stops & Map <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div id="step2" style="display:none">
+        <div class="total-dist-bar"><div><small style="opacity:.8;font-weight:700;letter-spacing:1px">TOTAL ROUTE DISTANCE</small><br><b id="totalDistLabel">0 km</b></div><div style="text-align:right"><small style="opacity:.8">Stops</small><br><b id="totalStopsLabel">0</b></div><div style="text-align:right"><small style="opacity:.8">Est. Duration</small><br><b id="totalDurLabel">—</b></div></div>
+        <div class="grid2" style="grid-template-columns:1fr 1.2fr;align-items:start">
+          <div>
+            <div class="timeline" id="stopTimeline"></div>
+            <button class="add-stop-btn" id="addStopBtn"><i class="fa-solid fa-plus"></i> ADD NEXT STOP</button>
+            <p style="font-size:12px;color:var(--muted);margin-top:10px"><i class="fa-solid fa-hand-pointer"></i> Drag the <i class="fa-solid fa-grip-vertical"></i> handle to reorder stops. Distances auto-calculate via OSRM road routing.</p>
+          </div>
+          <div>
+            <div class="map-tools">
+              <button class="btn btn-ghost btn-sm" id="fitMapBtn"><i class="fa-solid fa-expand"></i> Fit Route</button>
+              <button class="btn btn-ghost btn-sm" id="fsMapBtn"><i class="fa-solid fa-up-right-and-down-left-from-center"></i> Fullscreen</button>
+              <button class="btn btn-ghost btn-sm" id="pickMapBtn"><i class="fa-solid fa-location-crosshairs"></i> Click Map to Set Last Stop</button>
+            </div>
+            <div id="builderMap"></div>
+            <div id="routeWarn" style="display:none;background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;padding:10px;border-radius:12px;font-size:13px;margin-top:10px"><i class="fa-solid fa-triangle-exclamation"></i> Road routing unavailable — showing approximate straight-line distances. You can edit distances manually.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+          <button class="btn btn-ghost" id="backStep1"><i class="fa-solid fa-arrow-left"></i> Back</button>
+          <button class="btn btn-blue" id="saveBusBtn" style="flex:1;justify-content:center;padding:14px;font-size:15px"><i class="fa-solid fa-floppy-disk"></i> SAVE BUS</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MANAGE BUSES -->
+    <section class="page" id="page-manage">
+      <div class="search-bar"><input id="manageSearch" placeholder="Search by name, number, operator, route..."><select id="manageFilter" class="f-input" style="max-width:180px"><option value="">All Status</option><option value="verified">Verified</option><option value="unverified">Unverified</option><option value="review">Needs Review</option></select></div>
+      <div class="bus-grid" id="manageGrid"></div>
+    </section>
+
+    <!-- ROUTES -->
+    <section class="page" id="page-routes"><div class="card"><h3 style="margin-bottom:14px">All Routes</h3><div style="overflow-x:auto"><table id="routesTable"><thead><tr><th>Route</th><th>Stops</th><th>Distance</th><th>Duration</th><th>Bus</th></tr></thead><tbody></tbody></table></div></div></section>
+
+    <!-- STOPS -->
+    <section class="page" id="page-stops"><div class="card"><h3 style="margin-bottom:14px">All Stops (from buses)</h3><div id="allStopsList"></div></div></section>
+
+    <!-- SCHEDULES -->
+    <section class="page" id="page-schedules"><div class="card"><h3 style="margin-bottom:14px">Schedules</h3><div style="overflow-x:auto"><table id="schedTable"><thead><tr><th>Bus</th><th>Departure</th><th>Operating Days</th><th>Duration</th></tr></thead><tbody></tbody></table></div></div></section>
+
+    <!-- DISTRICTS -->
+    <section class="page" id="page-districts"><div class="card"><h3 style="margin-bottom:14px">District Management — 23 Districts of West Bengal</h3><div id="districtMgmt"></div></div></section>
+
+    <!-- REPORTS -->
+    <section class="page" id="page-reports"><div class="card"><h3 style="margin-bottom:14px"><i class="fa-solid fa-flag" style="color:var(--red)"></i> User Reports</h3><div id="reportsList"></div></div></section>
+
+    <!-- IMPORT EXPORT -->
+    <section class="page" id="page-importexport">
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:12px"><i class="fa-solid fa-download" style="color:var(--sky)"></i> Export Data</h3><p style="color:var(--muted);font-size:13px;margin-bottom:14px">Download all buses as JSON or CSV backup.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-blue" id="exportJson"><i class="fa-solid fa-file-code"></i> Export JSON</button><button class="btn btn-ghost" id="exportCsv"><i class="fa-solid fa-file-csv"></i> Export CSV</button></div></div>
+        <div class="card"><h3 style="margin-bottom:12px"><i class="fa-solid fa-upload" style="color:var(--sky)"></i> Import Data</h3><p style="color:var(--muted);font-size:13px;margin-bottom:14px">Import buses from a JSON file (array or object of buses).</p><input type="file" id="importFile" accept=".json" style="margin-bottom:12px"><button class="btn btn-dark" id="importBtn"><i class="fa-solid fa-file-import"></i> Import JSON</button></div>
+      </div>
+      <div class="card" style="margin-top:16px;background:#FFFBEB;border-color:#FDE68A"><h4><i class="fa-solid fa-triangle-exclamation"></i> Security Notice</h4><p style="font-size:13px;margin-top:6px">This development build uses open Firebase rules (<code>.read/.write = true</code>) and a client-side password (<code>722140</code>). <b>These are NOT secure for production.</b> Before public launch, replace with Firebase Authentication + server-side authorization rules and restrict database writes to authenticated admins only.</p></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="page" id="page-settings">
+      <div class="card" style="max-width:640px"><h3 style="margin-bottom:16px">Settings</h3>
+        <div class="field"><label>Geocoding Provider</label><select class="f-input" id="setProvider"><option value="nominatim">OpenStreetMap Nominatim (free, rate-limited)</option></select></div>
+        <div class="field"><label>Routing Provider</label><select class="f-input" id="setRouter"><option value="osrm">OSRM (router.project-osrm.org)</option></select></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-ghost" id="clearCacheBtn"><i class="fa-solid fa-trash"></i> Clear Geocoding Cache</button><button class="btn btn-danger" id="resetDemoBtn"><i class="fa-solid fa-rotate-left"></i> Reset Form</button></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toastBox"></div>
+<div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalBox"></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ============ CONFIG ============ */
+const firebaseConfig={apiKey:"AIzaSyCChxWV-g-w1TiertkXlUrfUgcC19y-CPNw",authDomain:"hiiii-72d78.firebaseapp.com",databaseURL:"https://hiiii-72d78-default-rtdb.firebaseio.com",projectId:"hiiii-72d78",storageBucket:"hiiii-72d78.firebasestorage.app",messagingSenderId:"560685164053",appId:"1:560685164053:web:7f672f7503160ec868901c"};
+const ADMIN_PASSWORD="722140";
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+const DISTRICTS=["Alipurduar","Bankura","Birbhum","Cooch Behar","Dakshin Dinajpur","Darjeeling","Hooghly","Howrah","Jalpaiguri","Jhargram","Kalimpong","Kolkata","Malda","Murshidabad","Nadia","North 24 Parganas","Paschim Bardhaman","Paschim Medinipur","Purba Bardhaman","Purba Medinipur","Purulia","South 24 Parganas","Uttar Dinajpur"];
+const WB_BBOX="85.4,27.1,89.9,21.2"; // minLon,maxLat,maxLon,minLat for viewbox
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let allBuses={},allReports={},editingId=null,builderMap=null,markerLayer=null,lineLayer=null,pickMode=false,routeGeometry=[],segmentData=[];
+let stops=[{name:"",lat:null,lng:null,time:"",district:"",type:"start"}];
+let geoCache=JSON.parse(localStorage.getItem('wimb_geo_cache')||'{}');
+function saveGeoCache(){try{localStorage.setItem('wimb_geo_cache',JSON.stringify(geoCache))}catch(e){}}
+function toast(msg,type=''){const t=document.createElement('div');t.className='toast '+type;t.innerHTML=(type==='success'?'<i class="fa-solid fa-circle-check"></i>':type==='error'?'<i class="fa-solid fa-circle-exclamation"></i>':'<i class="fa-solid fa-circle-info"></i>')+msg;$('#toastBox').appendChild(t);setTimeout(()=>t.remove(),3800)}
+function showModal(html){$('#modalBox').innerHTML=html;$('#modalOverlay').classList.add('show')}
+function closeModal(){$('#modalOverlay').classList.remove('show')}
+$('#modalOverlay').addEventListener('click',e=>{if(e.target.id==='modalOverlay')closeModal()});
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmtTime(t){if(!t)return'Time unavailable';if(/^\d{2}:\d{2}$/.test(t)){let[h,m]=t.split(':').map(Number);let ap=h>=12?'PM':'AM';h=h%12||12;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ap}`}return t}
+function haversine(a,b){if(a.lat==null||b.lat==null)return 0;const R=6371,dLa=(b.lat-a.lat)*Math.PI/180,dLo=(b.lng-a.lng)*Math.PI/180;const la1=a.lat*Math.PI/180,la2=b.lat*Math.PI/180;const h=Math.sin(dLa/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function genId(p){return p+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase()}
+function defaultBusSVG(){return 'data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0B1D3A"/><stop offset="1" stop-color="#0EA5E9"/></linearGradient></defs><rect width="600" height="300" fill="url(#g)"/><g fill="white" opacity=".95"><rect x="120" y="90" width="360" height="110" rx="22"/><rect x="140" y="110" width="70" height="40" rx="8" fill="#BAE6FD"/><rect x="225" y="110" width="70" height="40" rx="8" fill="#BAE6FD"/><rect x="310" y="110" width="70" height="40" rx="8" fill="#BAE6FD"/><rect x="395" y="110" width="60" height="40" rx="8" fill="#BAE6FD"/><circle cx="190" cy="205" r="26" fill="#0B1D3A"/><circle cx="190" cy="205" r="12" fill="#E2E8F0"/><circle cx="410" cy="205" r="26" fill="#0B1D3A"/><circle cx="410" cy="205" r="12" fill="#E2E8F0"/></g><text x="300" y="260" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="20">WHERE IS MY BUS?</text></svg>`)}
+/* ============ AUTH ============ */
+if(sessionStorage.getItem('wimb_admin')==='1')enterApp();
+$('#eyeBtn').addEventListener('click',()=>{const i=$('#adminPass');i.type=i.type==='password'?'text':'password';$('#eyeBtn').innerHTML=i.type==='password'?'<i class="fa-regular fa-eye"></i>':'<i class="fa-regular fa-eye-slash"></i>'});
+$('#loginForm').addEventListener('submit',e=>{e.preventDefault();const btn=$('#loginBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Checking...';$('#loginErr').classList.remove('show');
+setTimeout(()=>{if($('#adminPass').value===ADMIN_PASSWORD){sessionStorage.setItem('wimb_admin','1');enterApp();toast('Welcome back, Admin!','success')}else{$('#loginErr').classList.add('show');btn.disabled=false;btn.innerHTML='Login to Dashboard <i class="fa-solid fa-arrow-right"></i>'}},700)});
+function enterApp(){$('#loginScreen').style.display='none';$('#app').classList.add('show');initAdmin()}
+$('#logoutBtn').addEventListener('click',()=>{sessionStorage.removeItem('wimb_admin');location.reload()});
+/* ============ NAV ============ */
+const TITLES={overview:['Overview','Real-time statistics from Firebase'],addbus:['Add New Bus','Create a bus with stops & route map'],manage:['Manage Buses','View, edit, delete & verify buses'],routes:['Manage Routes','All saved routes'],stops:['Manage Stops','All stops across buses'],schedules:['Manage Schedules','Departure schedules'],districts:['District Management','23 districts of West Bengal'],reports:['Reports','User-submitted reports'],importexport:['Data Import / Export','Backup & restore data'],settings:['Settings','App configuration']};
+function showPage(p){$$('.page').forEach(s=>s.classList.remove('active'));$('#page-'+p).classList.add('active');$$('#sideNav .nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===p));$('#pageTitle').textContent=TITLES[p][0];$('#pageSub').textContent=TITLES[p][1];$('#sidebar').classList.remove('open');if(p==='addbus')setTimeout(()=>{initBuilderMap();renderTimeline()},80)}
+window.showPage=showPage;
+$$('#sideNav .nav-btn').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+$('#hamburger').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
+$('#themeToggle').addEventListener('click',()=>{const h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark';$('#themeToggle').innerHTML=h.dataset.theme==='dark'?'<i class="fa-solid fa-sun"></i> Light Mode':'<i class="fa-solid fa-moon"></i> Dark Mode'});
+$('#langToggle').addEventListener('click',()=>toast('বাংলা / English toggle: Admin panel labels remain in English for operations. User panel supports full Bengali.'));
+window.addEventListener('online',()=>{$('#netStatus').innerHTML='<i class="fa-solid fa-wifi"></i> Online';$('#netStatus').className='badge badge-verified'});
+window.addEventListener('offline',()=>{$('#netStatus').innerHTML='<i class="fa-solid fa-wifi-slash"></i> Offline';$('#netStatus').className='badge badge-review'});
+/* ============ FIREBASE LISTENERS ============ */
+let busesLoaded=false;
+function initAdmin(){
+db.ref('buses').on('value',snap=>{allBuses=snap.val()||{};busesLoaded=true;renderAll()});
+db.ref('reports').on('value',snap=>{allReports=snap.val()||{};renderReports();const n=Object.keys(allReports).length;$('#reportCount').style.display=n?'inline-block':'none';$('#reportCount').textContent=n});
+}
+function renderAll(){renderStats();renderManage();renderRoutes();renderStops();renderSchedules();renderDistricts()}
+function busList(){return Object.entries(allBuses).map(([id,b])=>({id,...b})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))}
+function renderStats(){
+const list=busList();const verified=list.filter(b=>b.verified===true).length;const unverified=list.filter(b=>b.verified!==true&&b.verified!=='review').length;
+const distSet=new Set();list.forEach(b=>{(b.stops||[]).forEach(s=>s.district&&distSet.add(s.district));b.startPoint?.district&&distSet.add(b.startPoint.district)});
+const totalStops=list.reduce((a,b)=>a+(b.stops?.length||0),0);
+const cards=[['Total Buses',list.length,'fa-bus','#0EA5E9'],['Total Routes',list.length,'fa-route','#06B6D4'],['Total Stops',totalStops,'fa-location-dot','#22C55E'],['Districts Covered',distSet.size,'fa-map','#8B5CF6'],['Verified',verified,'fa-circle-check','#16A34A'],['Unverified',unverified,'fa-circle-question','#F59E0B']];
+$('#statsGrid').innerHTML=cards.map(c=>`<div class="stat-card"><div class="ic" style="background:${c[3]}"><i class="fa-solid ${c[2]}"></i></div><b>${c[1]}</b><span>${c[0]}</span></div>`).join('');
+$('#recentList').innerHTML=list.slice(0,5).map(b=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><div><b style="font-size:14px">${esc(b.busName)}</b><br><small style="color:var(--muted)">${esc(b.startPoint?.name||'')} → ${esc(b.destination?.name||'')}</small></div><span class="badge ${b.verified===true?'badge-verified':b.verified==='review'?'badge-review':'badge-unverified'}">${b.verified===true?'Verified':b.verified==='review'?'Needs Review':'Unverified'}</span></div>`).join('')||'<div class="empty"><i class="fa-solid fa-bus"></i><p>No buses yet. Add your first bus!</p></div>';
+$('#districtCoverage').innerHTML=DISTRICTS.map(d=>{const c=list.filter(b=>(b.stops||[]).some(s=>s.district===d)||b.startPoint?.district===d).length;return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:150px;font-size:13px">${d}</span><div style="flex:1;background:var(--bg);border-radius:99px;height:10px;overflow:hidden"><div style="height:100%;width:${Math.min(100,c*25)}%;background:linear-gradient(90deg,#0EA5E9,#06B6D4);border-radius:99px"></div></div><b style="font-size:13px">${c}</b></div>`}).join('');
+}
+function renderManage(){
+const q=($('#manageSearch').value||'').toLowerCase(),f=$('#manageFilter').value;
+const list=busList().filter(b=>{const match=!q||[b.busName,b.busNumber,b.operator,b.startPoint?.name,b.destination?.name].join(' ').toLowerCase().includes(q);const st=b.verified===true?'verified':b.verified==='review'?'review':'unverified';return match&&(!f||st===f)});
+$('#manageGrid').innerHTML=list.map(b=>`<div class="bus-card"><img src="${esc(b.busImage||defaultBusSVG())}" onerror="this.src='${defaultBusSVG()}'" loading="lazy" alt=""><div class="bus-card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><b>${esc(b.busName)}</b><span class="badge ${b.verified===true?'badge-verified':b.verified==='review'?'badge-review':'badge-unverified'}">${b.verified===true?'✓ Verified':b.verified==='review'?'Needs Review':'Unverified'}</span></div><p style="font-size:13px;color:var(--muted);margin:6px 0">${esc(b.startPoint?.name||'')} → ${esc(b.destination?.name||'')} • ${fmtTime(b.departureTime)}</p><p style="font-size:12px;color:var(--muted)">${b.busNumber?esc(b.busNumber)+' • ':''}${b.stops?.length||0} stops • ${b.totalDistance||0} km • ${esc(b.operator||'')}</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="viewBus('${b.id}')"><i class="fa-solid fa-eye"></i> View</button><button class="btn btn-blue btn-sm" onclick="editBus('${b.id}')"><i class="fa-solid fa-pen"></i> Edit</button><button class="btn btn-ghost btn-sm" onclick="duplicateBus('${b.id}')"><i class="fa-solid fa-copy"></i></button><button class="btn ${b.verified===true?'btn-ghost':'btn-green'} btn-sm" onclick="toggleVerify('${b.id}')">${b.verified===true?'Unverify':'Verify'}</button><button class="btn btn-danger btn-sm" onclick="deleteBus('${b.id}')"><i class="fa-solid fa-trash"></i></button></div></div></div>`).join('')||'<div class="empty" style="grid-column:1/-1"><i class="fa-solid fa-bus"></i><h3>No buses found</h3><p>Add a bus to get started.</p></div>';
+}
+$('#manageSearch').addEventListener('input',renderManage);$('#manageFilter').addEventListener('change',renderManage);
+window.viewBus=id=>{const b=allBuses[id];if(!b)return;showModal(`<h3 style="margin-bottom:10px">${esc(b.busName)}</h3><img src="${esc(b.busImage||defaultBusSVG())}" onerror="this.src='${defaultBusSVG()}'" style="width:100%;height:180px;object-fit:cover;border-radius:14px;margin-bottom:12px"><p><b>Route:</b> ${esc(b.startPoint?.name||'')} → ${esc(b.destination?.name||'')}</p><p><b>Departure:</b> ${fmtTime(b.departureTime)} • <b>Distance:</b> ${b.totalDistance||0} km • <b>Duration:</b> ${esc(b.estimatedDuration||'—')}</p><p><b>Stops:</b> ${(b.stops||[]).map(s=>esc(s.name)).join(' → ')}</p><p><b>Operator:</b> ${esc(b.operator||'—')} • <b>Fare:</b> ${b.fare?'₹'+b.fare:'—'}</p><div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-blue" onclick="closeModal();editBus('${id}')">Edit Bus</button><button class="btn btn-ghost" onclick="closeModal()">Close</button></div>`)};
+window.toggleVerify=id=>{const b=allBuses[id];const nv=b.verified===true?false:true;db.ref('buses/'+id+'/verified').set(nv).then(()=>toast(nv?'Bus verified ✓':'Bus unverified','success')).catch(()=>toast('Update failed','error'))};
+window.deleteBus=id=>{showModal(`<h3>Delete this bus?</h3><p style="color:var(--muted);margin:10px 0">This will permanently remove <b>${esc(allBuses[id]?.busName||'')}</b> from Firebase. Shared data is not affected.</p><div style="display:flex;gap:8px"><button class="btn btn-danger" id="confirmDel">Yes, Delete</button><button class="btn btn-ghost" onclick="closeModal()">Cancel</button></div>`);$('#confirmDel').onclick=()=>{db.ref('buses/'+id).remove().then(()=>{closeModal();toast('Bus deleted','success')}).catch(()=>toast('Delete failed','error'))}};
+window.duplicateBus=id=>{const b=JSON.parse(JSON.stringify(allBuses[id]));const nid=genId('BUS');b.busId=nid;b.busName=(b.busName||'Bus')+' (Copy)';b.createdAt=Date.now();b.updatedAt=Date.now();b.verified=false;db.ref('buses/'+nid).set(b).then(()=>toast('Bus duplicated','success')).catch(()=>toast('Duplicate failed','error'))};
+window.editBus=id=>{const b=allBuses[id];if(!b)return;editingId=id;showPage('addbus');$('#f_busName').value=b.busName||'';$('#f_busNumber').value=b.busNumber||'';$('#f_operator').value=b.operator||'';$('#f_busType').value=b.busType||'';$('#f_busCategory').value=b.busCategory||'';$('#f_regNumber').value=b.regNumber||'';$('#f_fare').value=b.fare||'';$('#f_departureTime').value=b.departureTime||'06:15';$('#f_operatingDays').value=b.operatingDays||'';$('#f_duration').value=b.estimatedDuration||'';$('#f_busImage').value=b.busImage||'';$('#f_contact').value=b.contact||'';$('#f_description').value=b.description||'';
+stops=(b.stops&&b.stops.length?JSON.parse(JSON.stringify(b.stops)):[{name:b.startPoint?.name||'',lat:b.startPoint?.latitude??null,lng:b.startPoint?.longitude??null,time:b.departureTime||'',district:b.startPoint?.district||'',type:'start'}]);
+$('#f_startLoc').value=b.startPoint?.name||'';$('#f_destLoc').value=b.destination?.name||'';
+goStep(2);renderTimeline();toast('Editing: '+b.busName)};
+function renderRoutes(){const list=busList();$('#routesTable tbody').innerHTML=list.map(b=>`<tr><td><b>${esc(b.startPoint?.name||'')}</b> → <b>${esc(b.destination?.name||'')}</b></td><td>${b.stops?.length||0}</td><td>${b.totalDistance||0} km</td><td>${esc(b.estimatedDuration||'—')}</td><td>${esc(b.busName)}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--muted)">No routes yet</td></tr>'}
+function renderStops(){const list=busList();const seen={};list.forEach(b=>(b.stops||[]).forEach(s=>{if(s.name)seen[s.name]=s}));const arr=Object.values(seen);$('#allStopsList').innerHTML=arr.length?arr.map(s=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span><i class="fa-solid fa-location-dot" style="color:var(--sky)"></i> <b>${esc(s.name)}</b> <small style="color:var(--muted)">${esc(s.district||'')}</small></span><small style="color:var(--muted)">${s.lat?.toFixed(4)}, ${s.lng?.toFixed(4)}</small></div>`).join(''):'<div class="empty"><i class="fa-solid fa-location-dot"></i><p>No stops yet</p></div>'}
+function renderSchedules(){const list=busList();$('#schedTable tbody').innerHTML=list.map(b=>`<tr><td><b>${esc(b.busName)}</b></td><td>${fmtTime(b.departureTime)}</td><td>${esc(b.operatingDays||'Daily')}</td><td>${esc(b.estimatedDuration||'—')}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--muted)">No schedules yet</td></tr>'}
+function renderDistricts(){const list=busList();$('#districtMgmt').innerHTML=DISTRICTS.map(d=>{const c=list.filter(b=>(b.stops||[]).some(s=>s.district===d)).length;return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)"><span><i class="fa-solid fa-map-pin" style="color:var(--sky)"></i> <b>${d}</b></span><span class="badge ${c?'badge-verified':'badge-unverified'}">${c} bus(es)</span></div>`}).join('')}
+function renderReports(){const arr=Object.entries(allReports).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));$('#reportsList').innerHTML=arr.length?arr.map(([id,r])=>`<div style="border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px"><b>${esc(r.busName||r.busId||'Bus')}</b> <span class="badge badge-review">${esc(r.reason||'Report')}</span><p style="font-size:13px;color:var(--muted);margin-top:6px">${esc(r.details||'')} • ${new Date(r.createdAt||Date.now()).toLocaleString()}</p><button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="db.ref('reports/${id}').remove().then(()=>toast('Report resolved','success'))">Mark Resolved</button></div>`).join(''):'<div class="empty"><i class="fa-solid fa-flag"></i><p>No reports yet. 🎉</p></div>'}
+/* ============ AUTOCOMPLETE (Nominatim, debounced + cached) ============ */
+function setupAutocomplete(inputId,dropId,onSelect){
+const input=$(inputId),drop=$(dropId);let timer,selIdx=-1,items=[];
+input.addEventListener('input',()=>{clearTimeout(timer);const q=input.value.trim();if(q.length<3){drop.classList.remove('show');return}timer=setTimeout(()=>search(q),420)});
+input.addEventListener('keydown',e=>{if(!drop.classList.contains('show'))return;if(e.key==='ArrowDown'){e.preventDefault();selIdx=Math.min(selIdx+1,items.length-1);highlight()}else if(e.key==='ArrowUp'){e.preventDefault();selIdx=Math.max(selIdx-1,0);highlight()}else if(e.key==='Enter'&&selIdx>=0&&items[selIdx]){e.preventDefault();pick(items[selIdx])}});
+document.addEventListener('click',e=>{if(!e.target.closest('.ac-wrap'))drop.classList.remove('show')});
+function highlight(){[...drop.querySelectorAll('.ac-item')].forEach((el,i)=>el.classList.toggle('sel',i===selIdx))}
+async function search(q){
+drop.innerHTML='<div class="ac-loading"><span class="spinner" style="border-color:var(--border);border-top-color:var(--sky)"></span> Searching West Bengal...</div>';drop.classList.add('show');
+const key=q.toLowerCase();if(geoCache[key]){items=geoCache[key];render();return}
+try{const url=`https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&countrycodes=in&viewbox=${WB_BBOX}&q=${encodeURIComponent(q+', West Bengal')}`;const r=await fetch(url,{headers:{'Accept':'application/json'}});const data=await r.json();
+items=data.map(d=>({name:d.display_name.split(',')[0],full:d.display_name,lat:parseFloat(d.lat),lng:parseFloat(d.lon),district:d.address?.state_district||d.address?.county||d.address?.state||'',state:d.address?.state||'West Bengal',type:d.type||d.class||'',osmId:d.osm_id}));
+geoCache[key]=items;saveGeoCache();render();
+}catch(e){drop.innerHTML='<div class="ac-empty">Search failed. Check connection or type manually and pick on map.</div>'}
+}
+function render(){if(!items.length){drop.innerHTML='<div class="ac-empty">No results found. Try another name or pick on map.</div>';return}
+drop.innerHTML=items.map((it,i)=>`<div class="ac-item" data-i="${i}"><i class="fa-solid fa-location-dot"></i><div><b>${esc(it.name)}</b><span>${esc(it.full)}${it.district?' • '+esc(it.district):''}</span></div></div>`).join('');
+drop.querySelectorAll('.ac-item').forEach(el=>el.addEventListener('click',()=>pick(items[+el.dataset.i])))}
+function pick(it){input.value=it.name;drop.classList.remove('show');onSelect(it);toast('Location selected: '+it.name,'success')}
+}
+setupAutocomplete('#f_startLoc','#ac_start',it=>{stops[0]={...stops[0],name:it.name,lat:it.lat,lng:it.lng,district:it.district};$('#startCoordHint').textContent=`${it.lat.toFixed(5)}, ${it.lng.toFixed(5)} • ${it.district||''}`;renderTimeline()});
+setupAutocomplete('#f_destLoc','#ac_dest',it=>{const last=stops[stops.length-1];Object.assign(last,{name:it.name,lat:it.lat,lng:it.lng,district:it.district});$('#destCoordHint').textContent=`${it.lat.toFixed(5)}, ${it.lng.toFixed(5)} • ${it.district||''}`;renderTimeline()});
+/* ============ STEPS ============ */
+function goStep(n){$('#step1').style.display=n===1?'block':'none';$('#step2').style.display=n===2?'block':'none';$('#pill1').classList.toggle('active',n===1);$('#pill2').classList.toggle('active',n===2);if(n===2)setTimeout(()=>{initBuilderMap();renderTimeline()},80)}
+$('#toStep2').addEventListener('click',()=>{
+if(!$('#f_busName').value.trim())return toast('Bus Name is required','error');
+if(!$('#f_startLoc').value.trim())return toast('Starting Location is required','error');
+if(!$('#f_destLoc').value.trim())return toast('Destination is required','error');
+if(!$('#f_departureTime').value)return toast('Departure Time is required','error');
+if(stops.length<2)return toast('Add at least one valid route (2+ stops)','error');
+if(stops[0].lat==null||stops[stops.length-1].lat==null)return toast('Please select locations from suggestions or pick on map so coordinates are saved','error');
+if(!stops[0].name)stops[0].name=$('#f_startLoc').value.trim();
+const last=stops[stops.length-1];if(!last.name)last.name=$('#f_destLoc').value.trim();
+stops[0].time=$('#f_departureTime').value;goStep(2)});
+$('#backStep1').addEventListener('click',()=>goStep(1));
+/* ============ TIMELINE BUILDER ============ */
+function renderTimeline(){
+const box=$('#stopTimeline');if(!box)return;
+box.innerHTML=stops.map((s,i)=>{
+const type=i===0?'start':i===stops.length-1?'end':'mid';
+const label=i===0?'STARTING STOP':i===stops.length-1?'DESTINATION':'STOP '+i;
+const distHtml=i>0?`<div class="tl-dist"><span class="line"></span><span>↓ ${segmentData[i-1]?.km!=null?segmentData[i-1].km.toFixed(1)+' km':'calculating...'}${segmentData[i-1]?.approx?' (approx. straight-line)':''}</span><span class="line"></span></div>`:'';
+return `${distHtml}<div class="tl-item" draggable="true" data-i="${i}"><div class="tl-badge ${type}">${i===0?'<i class="fa-solid fa-flag-checkered"></i>':i===stops.length-1?'<i class="fa-solid fa-flag"></i>':i}</div><div class="tl-card" data-card="${i}"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:12px;letter-spacing:.5px;color:var(--muted)">${label}</b><span><span class="drag-handle" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>${stops.length>2?`<button class="btn btn-danger btn-sm" onclick="removeStop(${i})"><i class="fa-solid fa-trash"></i></button>`:''}</span></div><div class="form-grid" style="gap:8px;margin-top:8px"><div class="full"><label class="f-label">Location Name</label><div class="ac-wrap"><input class="f-input stop-name" data-i="${i}" value="${esc(s.name)}" placeholder="Type place name..." autocomplete="off"><div class="ac-drop" id="ac_stop_${i}"></div></div></div><div><label class="f-label">Time</label><input class="f-input stop-time" data-i="${i}" type="time" value="${esc(s.time||'')}"></div><div><label class="f-label">District</label><input class="f-input stop-dist" data-i="${i}" value="${esc(s.district||'')}" placeholder="District"></div><div><label class="f-label">Latitude</label><input class="f-input stop-lat" data-i="${i}" type="number" step="any" value="${s.lat??''}"></div><div><label class="f-label">Longitude</label><input class="f-input stop-lng" data-i="${i}" type="number" step="any" value="${s.lng??''}"></div></div><small style="color:var(--muted)">${s.lat!=null?`📍 ${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}`:'Pick from suggestions or click map'}</small></div></div>`}).join('');
+// bind inputs
+box.querySelectorAll('.stop-name').forEach(inp=>{const i=+inp.dataset.i;setupAutocomplete('#ac_stop_'+i==='#ac_stop_'+i?inp:inp,'#ac_stop_'+i,it=>{stops[i]={...stops[i],name:it.name,lat:it.lat,lng:it.lng,district:it.district};renderTimeline()});inp.addEventListener('change',()=>{stops[i].name=inp.value})});
+box.querySelectorAll('.stop-time').forEach(inp=>inp.addEventListener('change',()=>stops[+inp.dataset.i].time=inp.value));
+box.querySelectorAll('.stop-dist').forEach(inp=>inp.addEventListener('change',()=>stops[+inp.dataset.i].district=inp.value));
+box.querySelectorAll('.stop-lat').forEach(inp=>inp.addEventListener('change',()=>{stops[+inp.dataset.i].lat=parseFloat(inp.value)||null;refreshRoute()}));
+box.querySelectorAll('.stop-lng').forEach(inp=>inp.addEventListener('change',()=>{stops[+inp.dataset.i].lng=parseFloat(inp.value)||null;refreshRoute()}));
+// drag reorder
+box.querySelectorAll('.tl-item').forEach(el=>{el.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',el.dataset.i);el.querySelector('.tl-card').classList.add('dragging')});el.addEventListener('dragend',()=>el.querySelector('.tl-card').classList.remove('dragging'));el.addEventListener('dragover',e=>e.preventDefault());el.addEventListener('drop',e=>{e.preventDefault();const from=+e.dataTransfer.getData('text/plain'),to=+el.dataset.i;if(from===to)return;const[m]=stops.splice(from,1);stops.splice(to,0,m);renderTimeline()})});
+refreshRoute();
+}
+window.removeStop=i=>{stops.splice(i,1);if(stops.length<1)stops=[{name:"",lat:null,lng:null,time:"",district:"",type:"start"}];renderTimeline()};
+$('#addStopBtn').addEventListener('click',()=>{stops.push({name:"",lat:null,lng:null,time:"",district:"",type:"mid"});renderTimeline();toast('Stop added — fill details or pick on map')});
+/* ============ MAP BUILDER ============ */
+function initBuilderMap(){
+if(builderMap)return;
+builderMap=L.map('builderMap').setView([23.5,87.5],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(builderMap);
+markerLayer=L.layerGroup().addTo(builderMap);lineLayer=L.layerGroup().addTo(builderMap);
+builderMap.on('click',e=>{if(!pickMode)return;const i=stops.length-1;stops[i].lat=e.latlng.lat;stops[i].lng=e.latlng.lng;if(!stops[i].name)stops[i].name=`Pinned (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`;renderTimeline();toast('Location pinned on map','success')});
+}
+let routeTimer=null;
+async function refreshRoute(){
+if(!builderMap)return;
+markerLayer.clearLayers();lineLayer.clearLayers();
+const pts=stops.filter(s=>s.lat!=null&&s.lng!=null);
+pts.forEach((s,idx)=>{const isStart=idx===0,isEnd=idx===pts.length-1;const color=isStart?'#22C55E':isEnd?'#EF4444':'#0EA5E9';
+const icon=L.divIcon({className:'',html:`<div style="background:${color};color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.3)">${idx+1}</div>`,iconSize:[30,30],iconAnchor:[15,15]});
+const m=L.marker([s.lat,s.lng],{icon,draggable:true}).addTo(markerLayer);m.bindPopup(`<b>${esc(s.name||'Stop '+(idx+1))}</b><br>${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}<br><small>Drag to adjust</small>`);
+m.on('dragend',()=>{const ll=m.getLatLng();const origIdx=stops.indexOf(s);if(origIdx>=0){stops[origIdx].lat=ll.lat;stops[origIdx].lng=ll.lng;renderTimeline()}})});
+if(pts.length>=2){
+clearTimeout(routeTimer);routeTimer=setTimeout(async()=>{
+try{const coords=pts.map(p=>`${p.lng},${p.lat}`).join(';');const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`);const j=await r.json();
+if(j.routes&&j.routes[0]){routeGeometry=j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);L.polyline(routeGeometry,{color:'#0EA5E9',weight:5,opacity:.9}).addTo(lineLayer);$('#routeWarn').style.display='none';
+segmentData=[];let cum=0;for(let i=0;i<pts.length-1;i++){const seg=j.routes[0].legs[i];const km=seg.distance/1000;cum+=km;segmentData.push({km,cum,approx:false,duration:seg.duration})}
+updateTotals(j.routes[0].distance/1000,j.routes[0].duration);renderTimelineDistOnly();return}
+throw new Error('no route')}catch(e){routeGeometry=pts.map(p=>[p.lat,p.lng]);L.polyline(routeGeometry,{color:'#F59E0B',weight:4,dashArray:'8 6'}).addTo(lineLayer);$('#routeWarn').style.display='block';segmentData=[];let cum=0;for(let i=0;i<pts.length-1;i++){const km=haversine(pts[i],pts[i+1]);cum+=km;segmentData.push({km,cum,approx:true})}updateTotals(cum,null);renderTimelineDistOnly()}
+},600)}
+}
+function renderTimelineDistOnly(){// update distance labels without full re-render (avoid losing focus)
+const distEls=$$('#stopTimeline .tl-dist span:nth-child(2)');distEls.forEach((el,i)=>{if(segmentData[i])el.textContent=`↓ ${segmentData[i].km.toFixed(1)} km${segmentData[i].approx?' (approx. straight-line)':''}`});
+}
+function updateTotals(km,durSec){$('#totalDistLabel').textContent=km.toFixed(1)+' km';$('#totalStopsLabel').textContent=stops.length;$('#totalDurLabel').textContent=durSec?`${Math.floor(durSec/3600)}h ${Math.round((durSec%3600)/60)}m`:'—'}
+$('#fitMapBtn').addEventListener('click',()=>{const pts=stops.filter(s=>s.lat!=null);if(pts.length)builderMap.fitBounds(pts.map(p=>[p.lat,p.lng]),{padding:[30,30]})});
+$('#fsMapBtn').addEventListener('click',()=>{const el=$('#builderMap');if(document.fullscreenElement)document.exitFullscreen();else el.requestFullscreen?.()});
+$('#pickMapBtn').addEventListener('click',()=>{pickMode=!pickMode;$('#pickMapBtn').innerHTML=pickMode?'<i class="fa-solid fa-check"></i> Click map now...':'<i class="fa-solid fa-location-crosshairs"></i> Click Map to Set Last Stop';toast(pickMode?'Click on the map to pin the last stop':'Map pick cancelled')});
+/* ============ SAVE BUS ============ */
+$('#saveBusBtn').addEventListener('click',async()=>{
+const btn=$('#saveBusBtn');
+if(!$('#f_busName').value.trim())return toast('Bus Name required','error');
+if(stops.length<2)return toast('At least 2 stops required','error');
+for(let i=0;i<stops.length;i++){if(!stops[i].name.trim())return toast(`Stop ${i+1}: name required`,'error');if(stops[i].lat==null||stops[i].lng==null)return toast(`Stop ${i+1}: coordinates required — select from suggestions or pick on map`,'error')}
+btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Saving...';
+const totalKm=parseFloat($('#totalDistLabel').textContent)||stops.reduce((a,s,i)=>i?a+haversine(stops[i-1],s):0,0);
+const busId=editingId||genId('BUS');
+const bus={busId,busName:$('#f_busName').value.trim(),busNumber:$('#f_busNumber').value.trim(),operator:$('#f_operator').value.trim(),busType:$('#f_busType').value,busCategory:$('#f_busCategory').value,regNumber:$('#f_regNumber').value.trim(),fare:$('#f_fare').value?parseFloat($('#f_fare').value):null,busImage:$('#f_busImage').value.trim(),startPoint:{name:stops[0].name,latitude:stops[0].lat,longitude:stops[0].lng,district:stops[0].district||''},destination:{name:stops[stops.length-1].name,latitude:stops[stops.length-1].lat,longitude:stops[stops.length-1].lng,district:stops[stops.length-1].district||''},departureTime:$('#f_departureTime').value,totalDistance:Math.round(totalKm*10)/10,estimatedDuration:$('#f_duration').value.trim()||$('#totalDurLabel').textContent,operatingDays:$('#f_operatingDays').value.trim(),description:$('#f_description').value.trim(),contact:$('#f_contact').value.trim(),stops:stops.map((s,i)=>({order:i+1,name:s.name,latitude:s.lat,longitude:s.lng,time:s.time||'',district:s.district||'',segmentKm:segmentData[i]?.km!=null?Math.round(segmentData[i].km*10)/10:null,cumulativeKm:segmentData[i]?.cum!=null?Math.round(segmentData[i].cum*10)/10:null})),routeGeometry:routeGeometry||[],verified:allBuses[busId]?.verified||false,createdAt:allBuses[busId]?.createdAt||Date.now(),updatedAt:Date.now()};
+try{await db.ref('buses/'+busId).set(bus);toast(editingId?'Bus updated successfully!':'Bus saved successfully!','success');editingId=null;resetForm();showPage('manage')}
+catch(e){console.error(e);toast('Save failed: '+e.message,'error')}
+btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> SAVE BUS'});
+function resetForm(){editingId=null;['f_busName','f_busNumber','f_operator','f_regNumber','f_fare','f_operatingDays','f_duration','f_busImage','f_contact','f_description','f_startLoc','f_destLoc'].forEach(id=>$('#'+id).value='');stops=[{name:"",lat:null,lng:null,time:"",district:"",type:"start"}];segmentData=[];routeGeometry=[];goStep(1)}
+/* ============ IMPORT / EXPORT ============ */
+function download(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click()}
+$('#exportJson').addEventListener('click',()=>{download('where-is-my-bus-buses.json',JSON.stringify(allBuses,null,2),'application/json');toast('JSON exported','success')});
+$('#exportCsv').addEventListener('click',()=>{const rows=[['busId','busName','busNumber','operator','start','destination','departureTime','totalDistance','stops']];busList().forEach(b=>rows.push([b.id,b.busName,b.busNumber||'',b.operator||'',b.startPoint?.name||'',b.destination?.name||'',b.departureTime||'',b.totalDistance||'',(b.stops||[]).length]));download('where-is-my-bus-buses.csv',rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');toast('CSV exported','success')});
+$('#importBtn').addEventListener('click',()=>{const f=$('#importFile').files[0];if(!f)return toast('Choose a JSON file first','error');const r=new FileReader();r.onload=async()=>{try{const data=JSON.parse(r.result);const entries=Array.isArray(data)?data.map(b=>[b.busId||genId('BUS'),b]):Object.entries(data);for(const[id,b]of entries){b.busId=id;b.updatedAt=Date.now();await db.ref('buses/'+id).set(b)}toast(`Imported ${entries.length} bus(es)`,'success')}catch(e){toast('Import failed: '+e.message,'error')}};r.readAsText(f)});
+$('#clearCacheBtn').addEventListener('click',()=>{geoCache={};saveGeoCache();toast('Geocoding cache cleared','success')});
+$('#resetDemoBtn').addEventListener('click',resetForm);
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

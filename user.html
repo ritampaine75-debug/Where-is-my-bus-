@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>WHERE IS MY BUS? — West Bengal Bus Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Bengali:wght@400;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--navy:#0B1D3A;--sky:#0EA5E9;--cyan:#06B6D4;--bg:#F1F5F9;--card:#fff;--text:#0F172A;--muted:#64748B;--border:#E2E8F0;--green:#22C55E;--red:#EF4444;--shadow:0 10px 30px rgba(2,6,23,.08)}
+[data-theme=dark]{--bg:#070F22;--card:#0F1E3D;--text:#F1F5F9;--muted:#94A3B8;--border:#1E3A5F;--shadow:0 10px 30px rgba(0,0,0,.4)}
+*{box-sizing:border-box;margin:0;padding:0}html,body{max-width:100%;overflow-x:hidden}body{font-family:Inter,'Noto Sans Bengali',sans-serif;background:var(--bg);color:var(--text)}
+button,input,select{font-family:inherit}button{cursor:pointer;border:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes shimmer{to{background-position:-200% 0}}
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.header-in{max-width:1200px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-family:Poppins;font-weight:800;font-size:17px}
+.brand .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#0B1D3A,#0EA5E9);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px}
+.brand span{color:var(--sky)}
+nav.main-nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+nav.main-nav button{background:none;color:var(--muted);font-weight:700;font-size:13px;padding:9px 13px;border-radius:10px}
+nav.main-nav button:hover,nav.main-nav button.active{background:var(--bg);color:var(--text)}
+.hdr-btn{width:40px;height:40px;border-radius:11px;background:var(--bg);border:1px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:center}
+/* HERO */
+.hero{background:linear-gradient(135deg,#0B1D3A 0%,#0F2A52 45%,#0EA5E9 100%);color:#fff;padding:56px 16px 70px;position:relative;overflow:hidden}
+.hero:before{content:'';position:absolute;width:500px;height:500px;background:rgba(255,255,255,.07);border-radius:50%;top:-180px;right:-100px}
+.hero-in{max-width:1200px;margin:0 auto;position:relative;z-index:1}
+.hero h1{font-family:Poppins;font-size:clamp(32px,6vw,56px);line-height:1.05;letter-spacing:-1px}
+.hero h1 span{background:linear-gradient(90deg,#7DD3FC,#22D3EE);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:#BAE6FD;font-size:16px;margin:12px 0 26px;max-width:560px}
+.search-card{background:rgba(255,255,255,.97);border-radius:22px;padding:16px;box-shadow:0 25px 60px rgba(0,0,0,.3);max-width:860px}
+.search-row{display:grid;grid-template-columns:1fr 1fr auto;gap:10px}
+.search-row input{width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:13px;font-size:14px;outline:none;color:#0F172A;background:#fff}
+.search-row input:focus{border-color:var(--sky);box-shadow:0 0 0 4px rgba(14,165,233,.12)}
+.btn-find{background:linear-gradient(135deg,#0B1D3A,#0EA5E9);color:#fff;padding:14px 24px;border-radius:13px;font-weight:800;font-size:14px;white-space:nowrap}
+.quick-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.quick-tags button{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25);padding:8px 14px;border-radius:99px;font-size:12px;font-weight:700}
+.quick-tags button:hover{background:rgba(255,255,255,.25)}
+/* SECTIONS */
+.section{max-width:1200px;margin:0 auto;padding:36px 16px}
+.section h2{font-family:Poppins;font-size:24px;margin-bottom:6px}
+.section .sub{color:var(--muted);font-size:14px;margin-bottom:20px}
+.chip-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.chip-row::-webkit-scrollbar{display:none}
+.route-chip{flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 18px;box-shadow:var(--shadow);cursor:pointer;min-width:200px;text-align:left;color:var(--text)}
+.route-chip:hover{border-color:var(--sky);transform:translateY(-2px)}
+.route-chip b{font-size:14px}.route-chip small{color:var(--muted);display:block;margin-top:3px}
+.bus-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.bus-card{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:.2s;animation:fadeUp .4s}
+.bus-card:hover{transform:translateY(-4px);box-shadow:0 20px 45px rgba(2,6,23,.14)}
+.bus-card img{width:100%;height:160px;object-fit:cover}
+.bus-body{padding:16px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.badge-verified{background:#DCFCE7;color:#15803D}.badge-unverified{background:#FEF3C7;color:#B45309}.badge-review{background:#FEE2E2;color:#B91C1C}
+[data-theme=dark] .badge-verified{background:#14532D;color:#86EFAC}[data-theme=dark] .badge-unverified{background:#451A03;color:#FCD34D}
+.meta-row{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+.meta-row i{color:var(--sky);margin-right:4px}
+.district-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.district-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 14px;text-align:center;cursor:pointer;box-shadow:var(--shadow);transition:.2s}
+.district-card:hover{border-color:var(--sky);transform:translateY(-3px)}
+.district-card i{font-size:24px;color:var(--sky);margin-bottom:8px}
+.district-card b{font-size:14px;display:block}.district-card small{color:var(--muted)}
+/* VIEWS */
+.view{display:none}.view.active{display:block;animation:fadeUp .35s}
+.detail-hero{background:linear-gradient(135deg,#0B1D3A,#0EA5E9);color:#fff;border-radius:24px;padding:26px;margin-bottom:18px;position:relative;overflow:hidden}
+.detail-hero h2{font-family:Poppins;font-size:26px}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:16px 0}
+.summary-cell{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px;text-align:center}
+.summary-cell b{font-size:18px;display:block}.summary-cell span{font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:.5px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+#userMap{height:440px;border-radius:18px;border:1px solid var(--border);z-index:1}
+#userMap:fullscreen{height:100%}
+.anim-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.anim-btn{padding:11px 18px;border-radius:12px;font-weight:800;font-size:13px;display:inline-flex;gap:7px;align-items:center}
+.anim-play{background:linear-gradient(135deg,#0EA5E9,#06B6D4);color:#fff}
+.anim-ghost{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.progress-wrap{margin-top:14px}
+.progress-track{height:10px;background:var(--bg);border-radius:99px;overflow:hidden;border:1px solid var(--border)}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#0EA5E9,#06B6D4);border-radius:99px;transition:width .1s linear}
+.sim-label{display:inline-flex;gap:7px;align-items:center;background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;padding:7px 13px;border-radius:99px;font-size:12px;font-weight:700;margin-top:10px}
+[data-theme=dark] .sim-label{background:#451A03;color:#FCD34D;border-color:#92400E}
+.timeline{position:relative}
+.tl-item{display:flex;gap:14px;position:relative;padding-bottom:20px}
+.tl-item:before{content:'';position:absolute;left:19px;top:44px;bottom:0;width:2px;background:linear-gradient(180deg,var(--sky),var(--cyan));opacity:.35}
+.tl-item:last-child:before{display:none}
+.tl-badge{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;z-index:1;box-shadow:0 6px 16px rgba(0,0,0,.15)}
+.tl-badge.start{background:linear-gradient(135deg,#22C55E,#16A34A)}.tl-badge.mid{background:linear-gradient(135deg,#0EA5E9,#06B6D4)}.tl-badge.end{background:linear-gradient(135deg,#EF4444,#DC2626)}
+.tl-badge.next{outline:4px solid rgba(14,165,233,.3);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{outline-color:rgba(14,165,233,.1)}}
+.tl-card{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:13px 15px}
+.tl-dist{text-align:center;font-size:12px;font-weight:700;color:var(--sky);padding:4px 0 14px 54px}
+.empty{text-align:center;padding:56px 20px;color:var(--muted)}
+.empty i{font-size:52px;color:var(--sky);opacity:.5;margin-bottom:14px;display:block}
+.skeleton{background:linear-gradient(90deg,var(--border) 25%,var(--bg) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:16px;height:280px}
+#toastBox{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--navy);color:#fff;padding:14px 18px;border-radius:14px;box-shadow:0 15px 40px rgba(0,0,0,.3);font-size:14px;font-weight:600;animation:fadeUp .3s;max-width:340px}
+.toast.success{background:#15803D}.toast.error{background:#DC2626}
+.modal-overlay{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card);border-radius:22px;padding:26px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;animation:fadeUp .3s}
+.modal textarea,.modal select,.modal input{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);margin-bottom:12px;outline:none}
+.btn{padding:12px 18px;border-radius:12px;font-weight:800;font-size:13px;display:inline-flex;gap:7px;align-items:center}
+.btn-blue{background:linear-gradient(135deg,#0EA5E9,#06B6D4);color:#fff}
+.btn-ghost{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}
+footer{background:var(--navy);color:#CBD5E1;padding:36px 16px;margin-top:40px}
+.footer-in{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px}
+footer h4{color:#fff;margin-bottom:10px;font-size:15px}footer p,footer a{font-size:13px;color:#94A3B8}
+.bus-marker{font-size:26px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.4));transition:transform .1s linear}
+@media(max-width:760px){
+.search-row{grid-template-columns:1fr}.btn-find{width:100%}
+#userMap{height:340px}
+nav.main-nav{display:none}
+.detail-hero h2{font-size:21px}
+}
+</style>
+</head>
+<body>
+
+<header><div class="header-in">
+  <div class="brand"><div class="logo"><i class="fa-solid fa-bus"></i></div><div>WHERE IS <span>MY BUS?</span></div></div>
+  <nav class="main-nav">
+    <button class="active" data-view="home" data-i18n="nav_home">Home</button>
+    <button data-view="search" data-i18n="nav_search">Search Buses</button>
+    <button data-view="journey" data-i18n="nav_journey">Journey Search</button>
+    <button data-view="districts" data-i18n="nav_districts">Districts</button>
+    <button data-view="favorites" data-i18n="nav_fav">Favorites</button>
+  </nav>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <button class="hdr-btn" id="langBtn" title="Language"><i class="fa-solid fa-language"></i></button>
+    <button class="hdr-btn" id="themeBtn" title="Theme"><i class="fa-solid fa-moon"></i></button>
+  </div>
+</div></header>
+
+<!-- HOME -->
+<div class="view active" id="view-home">
+  <div class="hero"><div class="hero-in">
+    <h1 data-i18n="hero_title">Where Is <span>My Bus?</span></h1>
+    <p data-i18n="hero_sub">Discover buses, explore routes, and find every stop across West Bengal.</p>
+    <div class="search-card">
+      <div class="search-row">
+        <input id="heroFrom" placeholder="From — e.g. Kolkata" autocomplete="off">
+        <input id="heroTo" placeholder="To — e.g. Digha" autocomplete="off">
+        <button class="btn-find" id="heroFind"><i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="find">Find Buses</span></button>
+      </div>
+      <div class="quick-tags">
+        <button onclick="quickSearch('Kolkata','Digha')">Kolkata → Digha</button>
+        <button onclick="quickSearch('Kolkata','Siliguri')">Kolkata → Siliguri</button>
+        <button onclick="quickSearch('Durgapur','Kolkata')">Durgapur → Kolkata</button>
+        <button onclick="quickSearch('Bankura','Kolkata')">Bankura → Kolkata</button>
+        <button onclick="quickSearch('Darjeeling','Siliguri')">Darjeeling → Siliguri</button>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="section"><h2 data-i18n="popular_routes">Popular Routes</h2><p class="sub" data-i18n="popular_sub">Trending journeys across West Bengal</p><div class="chip-row" id="popularRoutes"></div></div>
+  <div class="section" style="padding-top:0"><h2 data-i18n="recent">Recently Added Buses</h2><p class="sub" data-i18n="recent_sub">Fresh routes added by our team</p><div class="bus-grid" id="recentGrid"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></div>
+  <div class="section" style="padding-top:0"><h2 data-i18n="districts_title">Explore by District</h2><p class="sub" data-i18n="districts_sub">All 23 districts of West Bengal</p><div class="district-grid" id="districtGrid"></div></div>
+  <div class="section" style="padding-top:0"><h2 data-i18n="destinations">Popular Destinations</h2><p class="sub" data-i18n="dest_sub">Tap a destination to explore buses</p><div class="chip-row" id="destChips"></div></div>
+</div>
+
+<!-- SEARCH -->
+<div class="view" id="view-search">
+  <div class="section">
+    <h2 data-i18n="search_title">Search Buses</h2><p class="sub" data-i18n="search_sub">Search by name, number, stop, district or operator</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+      <input id="searchInput" placeholder="Search buses..." style="flex:1;min-width:220px;padding:14px 16px;border-radius:13px;border:1.5px solid var(--border);background:var(--card);color:var(--text);outline:none">
+      <select id="districtFilter" style="padding:14px;border-radius:13px;border:1.5px solid var(--border);background:var(--card);color:var(--text)"><option value="">All Districts</option></select>
+      <select id="verifyFilter" style="padding:14px;border-radius:13px;border:1.5px solid var(--border);background:var(--card);color:var(--text)"><option value="">All Status</option><option value="verified">Verified</option><option value="unverified">Unverified</option><option value="review">Needs Review</option></select>
+    </div>
+    <div class="bus-grid" id="searchResults"></div>
+  </div>
+</div>
+
+<!-- JOURNEY -->
+<div class="view" id="view-journey">
+  <div class="section">
+    <h2 data-i18n="journey_title">Find Buses Between Two Locations</h2><p class="sub" data-i18n="journey_sub">We respect stop order — only buses that visit FROM before TO are shown.</p>
+    <div class="card" style="max-width:760px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label style="font-size:12px;font-weight:700;color:var(--muted)">FROM</label><input id="jFrom" placeholder="e.g. Kolkata" style="width:100%;padding:13px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--text);margin-top:5px"></div>
+        <div><label style="font-size:12px;font-weight:700;color:var(--muted)">TO</label><input id="jTo" placeholder="e.g. Digha" style="width:100%;padding:13px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--text);margin-top:5px"></div>
+      </div>
+      <button class="btn btn-blue" id="journeyBtn" style="width:100%;justify-content:center;margin-top:14px;padding:14px"><i class="fa-solid fa-route"></i> Find Buses</button>
+    </div>
+    <div class="bus-grid" id="journeyResults" style="margin-top:18px"></div>
+  </div>
+</div>
+
+<!-- DISTRICTS -->
+<div class="view" id="view-districts">
+  <div class="section"><h2 data-i18n="districts_title">Explore by District</h2><p class="sub" data-i18n="districts_sub">All 23 districts of West Bengal</p><div class="district-grid" id="districtGrid2"></div><div id="districtBuses" style="margin-top:24px"></div></div>
+</div>
+
+<!-- FAVORITES -->
+<div class="view" id="view-favorites">
+  <div class="section"><h2 data-i18n="nav_fav">Favorites</h2><p class="sub">Your saved buses (stored on this device)</p><div class="bus-grid" id="favGrid"></div></div>
+</div>
+
+<!-- DETAILS -->
+<div class="view" id="view-details">
+  <div class="section">
+    <button class="btn btn-ghost" onclick="goView('home')" style="margin-bottom:14px"><i class="fa-solid fa-arrow-left"></i> Back</button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<footer><div class="footer-in">
+  <div><h4>WHERE IS MY BUS?</h4><p>Every Bus. Every Route. Every Stop.<br>West Bengal's community bus explorer.</p></div>
+  <div><h4>Quick Links</h4><p><a href="#" onclick="goView('search');return false">Search Buses</a><br><a href="#" onclick="goView('journey');return false">Journey Search</a><br><a href="#" onclick="goView('districts');return false">Districts</a></p></div>
+  <div><h4>Note</h4><p>Route animation is a simulated journey preview — not live GPS tracking. Schedules & distances are as provided by operators; please verify before travel.</p></div>
+</div><p style="text-align:center;margin-top:24px;font-size:12px;color:#64748B">© 2026 WHERE IS MY BUS? • Made for West Bengal</p></footer>
+
+<div id="toastBox"></div>
+<div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalBox"></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ============ CONFIG ============ */
+const firebaseConfig={apiKey:"AIzaSyCChxWV-g-w1TiertkXlUrfUgcC19y-CPNw",authDomain:"hiiii-72d78.firebaseapp.com",databaseURL:"https://hiiii-72d78-default-rtdb.firebaseio.com",projectId:"hiiii-72d78",storageBucket:"hiiii-72d78.firebasestorage.app",messagingSenderId:"560685164053",appId:"1:560685164053:web:7f672f7503160ec868901c"};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+const DISTRICTS=["Alipurduar","Bankura","Birbhum","Cooch Behar","Dakshin Dinajpur","Darjeeling","Hooghly","Howrah","Jalpaiguri","Jhargram","Kalimpong","Kolkata","Malda","Murshidabad","Nadia","North 24 Parganas","Paschim Bardhaman","Paschim Medinipur","Purba Bardhaman","Purba Medinipur","Purulia","South 24 Parganas","Uttar Dinajpur"];
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let allBuses={},currentBus=null,userMap=null,anim={playing:false,pos:0,speed:1,raf:null,marker:null,lastTs:null,geometry:[]};
+let favorites=JSON.parse(localStorage.getItem('wimb_favorites')||'[]');
+function saveFavs(){localStorage.setItem('wimb_favorites',JSON.stringify(favorites))}
+function toast(msg,type=''){const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;$('#toastBox').appendChild(t);setTimeout(()=>t.remove(),3500)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmtTime(t){if(!t)return'Time unavailable';if(/^\d{2}:\d{2}$/.test(t)){let[h,m]=t.split(':').map(Number);let ap=h>=12?'PM':'AM';h=h%12||12;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ap}`}return t}
+function defaultBusSVG(){return 'data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0B1D3A"/><stop offset="1" stop-color="#0EA5E9"/></linearGradient></defs><rect width="600" height="300" fill="url(#g)"/><g fill="white" opacity=".95"><rect x="120" y="90" width="360" height="110" rx="22"/><rect x="140" y="110" width="70" height="40" rx="8" fill="#BAE6FD"/><rect x="225" y="110" width="70" height="40" rx="8" fill="#BAE6FD"/><rect x="310" y="110" width="70" height="40" rx="8" fill="#BAE6FD"/><rect x="395" y="110" width="60" height="40" rx="8" fill="#BAE6FD"/><circle cx="190" cy="205" r="26" fill="#0B1D3A"/><circle cx="190" cy="205" r="12" fill="#E2E8F0"/><circle cx="410" cy="205" r="26" fill="#0B1D3A"/><circle cx="410" cy="205" r="12" fill="#E2E8F0"/></g><text x="300" y="260" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="20">WHERE IS MY BUS?</text></svg>`)}
+/* ============ I18N ============ */
+const I18N={en:{nav_home:'Home',nav_search:'Search Buses',nav_journey:'Journey Search',nav_districts:'Districts',nav_fav:'Favorites',hero_title:'Where Is <span>My Bus?</span>',hero_sub:'Discover buses, explore routes, and find every stop across West Bengal.',find:'Find Buses',popular_routes:'Popular Routes',popular_sub:'Trending journeys across West Bengal',recent:'Recently Added Buses',recent_sub:'Fresh routes added by our team',districts_title:'Explore by District',districts_sub:'All 23 districts of West Bengal',destinations:'Popular Destinations',dest_sub:'Tap a destination to explore buses',search_title:'Search Buses',search_sub:'Search by name, number, stop, district or operator',journey_title:'Find Buses Between Two Locations',journey_sub:'We respect stop order — only buses that visit FROM before TO are shown.'},
+bn:{nav_home:'হোম',nav_search:'বাস খুঁজুন',nav_journey:'যাত্রা খুঁজুন',nav_districts:'জেলা',nav_fav:'প্রিয়',hero_title:'আমার বাস <span>কোথায়?</span>',hero_sub:'পশ্চিমবঙ্গ জুড়ে বাস, রুট ও প্রতিটি স্টপ আবিষ্কার করুন।',find:'বাস খুঁজুন',popular_routes:'জনপ্রিয় রুট',popular_sub:'পশ্চিমবঙ্গের ট্রেন্ডিং যাত্রা',recent:'সম্প্রতি যোগ করা বাস',recent_sub:'আমাদের টিমের নতুন রুট',districts_title:'জেলা অনুযায়ী দেখুন',districts_sub:'পশ্চিমবঙ্গের ২৩টি জেলা',destinations:'জনপ্রিয় গন্তব্য',dest_sub:'বাস দেখতে গন্তব্যে ট্যাপ করুন',search_title:'বাস খুঁজুন',search_sub:'নাম, নম্বর, স্টপ, জেলা বা অপারেটর দিয়ে খুঁজুন',journey_title:'দুটি স্থানের মধ্যে বাস খুঁজুন',journey_sub:'স্টপের ক্রম সম্মান করা হয় — শুধুমাত্র FROM-এর পরে TO-তে যাওয়া বাস দেখানো হয়।'}};
+let lang='en';
+function applyLang(){$$('[data-i18n]').forEach(el=>{const k=el.dataset.i18n;if(I18N[lang][k])el.innerHTML=I18N[lang][k]});document.documentElement.lang=lang}
+$('#langBtn').addEventListener('click',()=>{lang=lang==='en'?'bn':'en';applyLang();toast(lang==='bn'?'ভাষা: বাংলা':'Language: English')});
+$('#themeBtn').addEventListener('click',()=>{const h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark';$('#themeBtn').innerHTML=h.dataset.theme==='dark'?'<i class="fa-solid fa-sun"></i>':'<i class="fa-solid fa-moon"></i>'});
+/* ============ NAV ============ */
+function goView(v){$$('.view').forEach(s=>s.classList.remove('active'));$('#view-'+v).classList.add('active');$$('nav.main-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));window.scrollTo({top:0,behavior:'smooth'});if(v==='favorites')renderFavorites();if(v==='search')renderSearch()}
+window.goView=goView;
+$$('nav.main-nav button').forEach(b=>b.addEventListener('click',()=>goView(b.dataset.view)));
+/* ============ DATA ============ */
+db.ref('buses').on('value',snap=>{allBuses=snap.val()||{};renderHome();renderSearch();renderDistricts()});
+function busList(){return Object.entries(allBuses).map(([id,b])=>({id,...b})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))}
+function verifyBadge(b){return b.verified===true?'<span class="badge badge-verified">✓ Verified</span>':b.verified==='review'?'<span class="badge badge-review">Needs Review</span>':'<span class="badge badge-unverified">Unverified</span>'}
+function busCard(b){return `<div class="bus-card" onclick="openBus('${b.id}')"><img src="${esc(b.busImage||defaultBusSVG())}" onerror="this.src='${defaultBusSVG()}'" loading="lazy" alt=""><div class="bus-body"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b>${esc(b.busName)}</b>${verifyBadge(b)}</div><p style="font-size:13px;color:var(--muted);margin-top:5px"><i class="fa-solid fa-location-dot" style="color:var(--sky)"></i> ${esc(b.startPoint?.name||'')} → ${esc(b.destination?.name||'')}</p><div class="meta-row"><span><i class="fa-regular fa-clock"></i>${fmtTime(b.departureTime)}</span><span><i class="fa-solid fa-road"></i>${b.totalDistance||0} km</span><span><i class="fa-solid fa-location-dot"></i>${b.stops?.length||0} stops</span><span><i class="fa-regular fa-hourglass"></i>${esc(b.estimatedDuration||'—')}</span></div>${b.operator?`<p style="font-size:12px;color:var(--muted);margin-top:8px"><i class="fa-solid fa-building"></i> ${esc(b.operator)}</p>`:''}</div></div>`}
+function emptyState(msg){return `<div class="empty" style="grid-column:1/-1"><i class="fa-solid fa-bus"></i><h3>${msg}</h3><p style="margin-top:6px">New routes are added regularly. Check back soon!</p></div>`}
+function renderHome(){
+const list=busList();
+$('#recentGrid').innerHTML=list.slice(0,6).map(busCard).join('')||emptyState('No buses added yet');
+const popular=[['Kolkata','Digha'],['Kolkata','Siliguri'],['Durgapur','Kolkata'],['Bankura','Kolkata'],['Darjeeling','Siliguri'],['Howrah','Digha'],['Kolkata','Darjeeling'],['Malda','Kolkata']];
+$('#popularRoutes').innerHTML=popular.map(p=>`<button class="route-chip" onclick="quickSearch('${p[0]}','${p[1]}')"><b>${p[0]} → ${p[1]}</b><small>Tap to find buses</small></button>`).join('');
+const dests=['Kolkata','Digha','Darjeeling','Siliguri','Durgapur','Bankura','Howrah','Malda','Purulia','Jalpaiguri'];
+$('#destChips').innerHTML=dests.map(d=>`<button class="route-chip" style="min-width:auto" onclick="searchByDest('${d}')"><b>📍 ${d}</b></button>`).join('');
+}
+window.searchByDest=d=>{$('#searchInput').value=d;goView('search')};
+window.quickSearch=(f,t)=>{$('#jFrom').value=f;$('#jTo').value=t;goView('journey');runJourney()};
+$('#heroFind').addEventListener('click',()=>{const f=$('#heroFrom').value.trim(),t=$('#heroTo').value.trim();if(!f&&!t){$('#searchInput').value='';goView('search');return}$('#jFrom').value=f;$('#jTo').value=t;goView('journey');runJourney()});
+function renderDistricts(){
+const list=busList();
+const html=DISTRICTS.map(d=>{const c=list.filter(b=>(b.stops||[]).some(s=>s.district===d)||b.startPoint?.district===d).length;return `<div class="district-card" onclick="openDistrict('${d}')"><i class="fa-solid fa-map-pin"></i><b>${d}</b><small>${c} bus(es)</small></div>`}).join('');
+$('#districtGrid').innerHTML=html;$('#districtGrid2').innerHTML=html;
+const sel=$('#districtFilter');if(sel.options.length<=1)DISTRICTS.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o)});
+}
+window.openDistrict=d=>{goView('districts');const list=busList().filter(b=>(b.stops||[]).some(s=>s.district===d)||b.startPoint?.district===d);$('#districtBuses').innerHTML=`<h3 style="margin-bottom:14px">Buses in ${d} (${list.length})</h3>`+(list.length?`<div class="bus-grid">${list.map(busCard).join('')}</div>`:`<div class="empty"><i class="fa-solid fa-map-pin"></i><h3>No bus routes have been added for this district yet.</h3><p style="margin-top:6px">Check back soon — new routes are added regularly.</p></div>`)};
+/* ============ SEARCH ============ */
+function renderSearch(){
+const q=($('#searchInput')?.value||'').toLowerCase(),df=$('#districtFilter')?.value||'',vf=$('#verifyFilter')?.value||'';
+const list=busList().filter(b=>{
+const hay=[b.busName,b.busNumber,b.operator,b.startPoint?.name,b.destination?.name,(b.stops||[]).map(s=>s.name).join(' '),(b.stops||[]).map(s=>s.district).join(' ')].join(' ').toLowerCase();
+const match=!q||hay.includes(q);
+const dm=!df||(b.stops||[]).some(s=>s.district===df)||b.startPoint?.district===df;
+const st=b.verified===true?'verified':b.verified==='review'?'review':'unverified';
+return match&&dm&&(!vf||st===vf)});
+$('#searchResults').innerHTML=list.map(busCard).join('')||emptyState('No buses match your search');
+}
+$('#searchInput').addEventListener('input',renderSearch);$('#districtFilter').addEventListener('change',renderSearch);$('#verifyFilter').addEventListener('change',renderSearch);
+/* ============ JOURNEY SEARCH (order-respecting) ============ */
+function findStopIdx(stops,name){const n=name.trim().toLowerCase();return stops.findIndex(s=>(s.name||'').toLowerCase()===n||(s.name||'').toLowerCase().includes(n)||n.includes((s.name||'').toLowerCase()))}
+function runJourney(){
+const from=$('#jFrom').value.trim(),to=$('#jTo').value.trim();
+if(!from||!to)return toast('Enter both FROM and TO locations','error');
+const results=[];
+busList().forEach(b=>{const stops=b.stops||[];if(stops.length<2)return;const fi=findStopIdx(stops,from),ti=findStopIdx(stops,to);if(fi>=0&&ti>fi){const segKm=(stops[ti].cumulativeKm??b.totalDistance)-(stops[fi].cumulativeKm??0);results.push({b,fi,ti,segKm,intermediate:ti-fi-1})}});
+$('#journeyResults').innerHTML=results.length?results.map(r=>`<div class="bus-card" onclick="openBus('${r.b.id}')"><img src="${esc(r.b.busImage||defaultBusSVG())}" onerror="this.src='${defaultBusSVG()}'" loading="lazy"><div class="bus-body"><div style="display:flex;justify-content:space-between"><b>${esc(r.b.busName)}</b>${verifyBadge(r.b)}</div><p style="font-size:13px;color:var(--muted);margin-top:5px">${esc(r.b.stops[r.fi].name)} → ${esc(r.b.stops[r.ti].name)}</p><div class="meta-row"><span><i class="fa-regular fa-clock"></i>Dep: ${fmtTime(r.b.stops[r.fi].time||r.b.departureTime)}</span><span><i class="fa-regular fa-clock"></i>Arr: ${fmtTime(r.b.stops[r.ti].time)}</span><span><i class="fa-solid fa-road"></i>${r.segKm?r.segKm.toFixed(1):'—'} km</span><span><i class="fa-solid fa-location-dot"></i>${r.intermediate} intermediate</span>${r.b.fare?`<span><i class="fa-solid fa-indian-rupee-sign"></i>${r.b.fare}</span>`:''}</div></div></div>`).join(''):emptyState(`No buses found from ${esc(from)} to ${esc(to)}`);
+}
+$('#journeyBtn').addEventListener('click',runJourney);
+/* ============ FAVORITES ============ */
+function renderFavorites(){const list=busList().filter(b=>favorites.includes(b.id));$('#favGrid').innerHTML=list.map(busCard).join('')||emptyState('No favorites yet — tap the heart on any bus to save it')}
+window.toggleFav=(id,e)=>{e?.stopPropagation();if(favorites.includes(id)){favorites=favorites.filter(f=>f!==id);toast('Removed from favorites')}else{favorites.push(id);toast('Saved to favorites ❤️','success')}saveFavs();if(currentBus)renderDetail(currentBus)};
+/* ============ BUS DETAILS + MAP + ANIMATION ============ */
+window.openBus=id=>{const b=allBuses[id];if(!b)return toast('Bus not found','error');currentBus={id,...b};goView('details');renderDetail(currentBus)};
+function stopMarkerIcon(type,num){const color=type==='start'?'#22C55E':type==='end'?'#EF4444':'#0EA5E9';return L.divIcon({className:'',html:`<div style="background:${color};color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.3)">${num}</div>`,iconSize:[30,30],iconAnchor:[15,15]})}
+function renderDetail(b){
+stopAnim();
+const stops=b.stops||[];const isFav=favorites.includes(b.id);
+const timeline=stops.map((s,i)=>{const type=i===0?'start':i===stops.length-1?'end':'mid';const seg=i>0?stops[i].segmentKm:null;const cum=stops[i].cumulativeKm;
+return `${i>0?`<div class="tl-dist">↓ ${seg!=null?seg.toFixed(1)+' km':'distance unavailable'}${cum!=null?' • '+cum.toFixed(1)+' km from start':''}</div>`:''}<div class="tl-item"><div class="tl-badge ${type}" id="tlbadge-${i}">${i===0?'<i class="fa-solid fa-flag-checkered"></i>':i===stops.length-1?'<i class="fa-solid fa-flag"></i>':i}</div><div class="tl-card"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px"><b>${esc(s.name)}</b><span style="font-size:12px;color:var(--muted)">${s.time?fmtTime(s.time):'Time unavailable'}</span></div><small style="color:var(--muted)">Stop ${i+1} of ${stops.length}${s.district?' • '+esc(s.district):''}</small></div></div>`}).join('');
+$('#detailContent').innerHTML=`
+<div class="detail-hero">
+  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:flex-start">
+    <div><h2>${esc(b.busName)}</h2><p style="color:#BAE6FD;margin-top:4px">${esc(b.startPoint?.name||'')} → ${esc(b.destination?.name||'')}</p></div>
+    <div style="display:flex;gap:8px"><button class="anim-btn anim-ghost" onclick="toggleFav('${b.id}',event)"><i class="fa-${isFav?'solid':'regular'} fa-heart" style="color:${isFav?'#EF4444':'inherit'}"></i> ${isFav?'Saved':'Save'}</button><button class="anim-btn anim-ghost" onclick="openReport('${b.id}')"><i class="fa-solid fa-flag"></i> Report</button></div>
+  </div>
+  <div class="summary-grid">
+    <div class="summary-cell"><b>${fmtTime(b.departureTime)}</b><span>Departure</span></div>
+    <div class="summary-cell"><b>${b.totalDistance||0} km</b><span>Total Distance</span></div>
+    <div class="summary-cell"><b>${esc(b.estimatedDuration||'—')}</b><span>Est. Journey</span></div>
+    <div class="summary-cell"><b>${stops.length}</b><span>Total Stops</span></div>
+    <div class="summary-cell"><b>${b.fare?'₹'+b.fare:'—'}</b><span>Fare</span></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${verifyBadge(b)}${b.busNumber?`<span class="badge" style="background:rgba(255,255,255,.15);color:#fff">${esc(b.busNumber)}</span>`:''}${b.operator?`<span class="badge" style="background:rgba(255,255,255,.15);color:#fff">${esc(b.operator)}</span>`:''}${b.busType?`<span class="badge" style="background:rgba(255,255,255,.15);color:#fff">${esc(b.busType)}</span>`:''}<small style="opacity:.8">Updated: ${b.updatedAt?new Date(b.updatedAt).toLocaleDateString():'—'}</small></div>
+</div>
+${b.busImage?`<img src="${esc(b.busImage)}" onerror="this.style.display='none'" style="width:100%;height:220px;object-fit:cover;border-radius:20px;margin-bottom:16px" loading="lazy">`:''}
+<div class="card">
+  <h3 style="margin-bottom:4px"><i class="fa-solid fa-map" style="color:var(--sky)"></i> Route Map</h3>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:12px">${esc(b.startPoint?.name||'')} → ${esc(b.destination?.name||'')} • Total: ${b.totalDistance||0} km • ${stops.length} stops</p>
+  <div id="userMap"></div>
+  <span class="sim-label"><i class="fa-solid fa-clapperboard"></i> Route Animation — Simulated Journey (not live GPS)</span>
+  <div class="anim-controls">
+    <button class="anim-btn anim-play" id="animPlay"><i class="fa-solid fa-play"></i> Play</button>
+    <button class="anim-btn anim-ghost" id="animPause"><i class="fa-solid fa-pause"></i> Pause</button>
+    <button class="anim-btn anim-ghost" id="animRestart"><i class="fa-solid fa-rotate-left"></i> Restart</button>
+    <label style="font-size:13px;font-weight:700">Speed <select id="animSpeed" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text)"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+    <span id="animInfo" style="font-size:13px;color:var(--muted);font-weight:600">Ready</span>
+  </div>
+  <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="animProgress"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px"><span>${esc(b.startPoint?.name||'Start')}</span><span>${esc(b.destination?.name||'Destination')}</span></div></div>
+</div>
+<div class="card"><h3 style="margin-bottom:16px"><i class="fa-solid fa-list-ul" style="color:var(--sky)"></i> Journey Timeline</h3><div class="timeline">${timeline||'<p style="color:var(--muted)">No stop details available.</p>'}</div></div>
+${b.description?`<div class="card"><h3 style="margin-bottom:8px">About this bus</h3><p style="color:var(--muted);font-size:14px">${esc(b.description)}</p>${b.contact?`<p style="margin-top:8px;font-size:14px"><i class="fa-solid fa-phone" style="color:var(--sky)"></i> ${esc(b.contact)}</p>`:''}${b.operatingDays?`<p style="margin-top:6px;font-size:14px"><i class="fa-regular fa-calendar"></i> ${esc(b.operatingDays)}</p>`:''}</div>`:''}`;
+setTimeout(()=>initUserMap(b),100);
+}
+function initUserMap(b){
+if(userMap){userMap.remove();userMap=null}
+const stops=(b.stops||[]).filter(s=>s.latitude!=null);
+if(!stops.length){$('#userMap').innerHTML='<div class="empty"><i class="fa-solid fa-map-pin"></i><p>No map coordinates available for this bus.</p></div>';return}
+userMap=L.map('userMap').setView([stops[0].latitude,stops[0].longitude],8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(userMap);
+const geom=(b.routeGeometry&&b.routeGeometry.length)?b.routeGeometry:stops.map(s=>[s.latitude,s.longitude]);
+anim.geometry=geom;
+L.polyline(geom,{color:'#0EA5E9',weight:5,opacity:.9}).addTo(userMap);
+stops.forEach((s,i)=>{const type=i===0?'start':i===stops.length-1?'end':'mid';const m=L.marker([s.latitude,s.longitude],{icon:stopMarkerIcon(type,i+1)}).addTo(userMap);
+m.bindPopup(`<b>${esc(s.name)}</b><br>Stop ${i+1} of ${stops.length}<br>${s.time?'🕐 '+fmtTime(s.time):'Time unavailable'}<br>${s.segmentKm!=null?'From previous: '+s.segmentKm.toFixed(1)+' km<br>':''}${s.cumulativeKm!=null?'Cumulative: '+s.cumulativeKm.toFixed(1)+' km':''}`)});
+userMap.fitBounds(geom,{padding:[30,30]});
+anim.pos=0;anim.playing=false;
+const busIcon=L.divIcon({className:'',html:'<div class="bus-marker" id="busMarkerEl">🚌</div>',iconSize:[30,30],iconAnchor:[15,15]});
+anim.marker=L.marker(geom[0],{icon:busIcon}).addTo(userMap);
+$('#animPlay').onclick=()=>startAnim(b,stops);
+$('#animPause').onclick=()=>{anim.playing=false;cancelAnimationFrame(anim.raf);$('#animInfo').textContent='Paused'};
+$('#animRestart').onclick=()=>{stopAnim();anim.pos=0;updateBusPos(b,stops);$('#animInfo').textContent='Restarted — press Play'};
+$('#animSpeed').onchange=e=>anim.speed=parseFloat(e.target.value);
+updateBusPos(b,stops);
+}
+function updateBusPos(b,stops){
+if(!anim.marker||!anim.geometry.length)return;
+const idx=Math.min(Math.floor(anim.pos),anim.geometry.length-2);const frac=anim.pos-idx;
+const a=anim.geometry[idx],c=anim.geometry[idx+1];
+const lat=a[0]+(c[0]-a[0])*frac,lng=a[1]+(c[1]-a[1])*frac;
+anim.marker.setLatLng([lat,lng]);
+const el=document.getElementById('busMarkerEl');if(el){const ang=Math.atan2(c[1]-a[1],c[0]-a[0])*180/Math.PI;el.style.transform=`rotate(${-ang+90}deg)`}
+$('#animProgress').style.width=(anim.pos/(anim.geometry.length-1)*100)+'%';
+// next stop highlight
+const progress=anim.pos/(anim.geometry.length-1);
+const nextIdx=Math.min(stops.length-1,Math.floor(progress*stops.length));
+stops.forEach((s,i)=>{const badge=document.getElementById('tlbadge-'+i);if(badge)badge.classList.toggle('next',i===nextIdx)});
+if(stops[nextIdx])$('#animInfo').textContent=`Next stop: ${stops[nextIdx].name} • ${Math.round(progress*100)}% complete`;
+}
+function startAnim(b,stops){
+if(anim.playing)return;anim.playing=true;anim.lastTs=null;
+const step=ts=>{if(!anim.playing)return;if(anim.lastTs==null)anim.lastTs=ts;const dt=(ts-anim.lastTs)/1000;anim.lastTs=ts;
+anim.pos+=dt*anim.speed*2.2; // points per second
+if(anim.pos>=anim.geometry.length-1){anim.pos=anim.geometry.length-1;anim.playing=false;$('#animInfo').textContent='Journey complete! 🎉';updateBusPos(b,stops);return}
+updateBusPos(b,stops);anim.raf=requestAnimationFrame(step)};
+anim.raf=requestAnimationFrame(step);
+}
+function stopAnim(){anim.playing=false;if(anim.raf)cancelAnimationFrame(anim.raf)}
+/* ============ REPORT ============ */
+window.openReport=id=>{const b=allBuses[id];showModal(`<h3>Report incorrect information</h3><p style="color:var(--muted);font-size:13px;margin:8px 0 14px">Bus: <b>${esc(b?.busName||'')}</b></p><select id="repReason"><option>Incorrect route</option><option>Incorrect departure time</option><option>Missing stop</option><option>Wrong distance</option><option>Incorrect bus details</option><option>Other</option></select><textarea id="repDetails" rows="3" placeholder="Describe the issue..."></textarea><div style="display:flex;gap:8px"><button class="btn btn-blue" id="repSubmit">Submit Report</button><button class="btn btn-ghost" onclick="closeModal()">Cancel</button></div>`);
+$('#repSubmit').onclick=()=>{db.ref('reports').push({busId:id,busName:b?.busName||'',reason:$('#repReason').value,details:$('#repDetails').value,createdAt:Date.now()}).then(()=>{closeModal();toast('Report submitted. Thank you!','success')}).catch(()=>toast('Could not submit report','error'))}};
+function showModal(html){$('#modalBox').innerHTML=html;$('#modalOverlay').classList.add('show')}
+window.closeModal=()=>$('#modalOverlay').classList.remove('show');
+$('#modalOverlay').addEventListener('click',e=>{if(e.target.id==='modalOverlay')closeModal()});
+applyLang();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
